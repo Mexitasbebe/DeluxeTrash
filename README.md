@@ -25,6 +25,17 @@ or:
 
 The cli project contains valid console script entrypoints for potrace. If you install the command-line package it will add `potracer` to your console scripts. Note the `-r` suffix so that it does not interfere with potrace that may be otherwise installed.
 
+### Numba (optional, experimental)
+[numba](https://github.com/numba/numba), an open source jit compiler for python & numpy, has been shown to speed up python potrace considerably (for complex images approx. a factor of 2).
+While numba supports most [platforms](https://numba.pydata.org/numba-doc/latest/user/installing.html#compatibility), it does not support _every_ platform that can run python.
+Depending on your requirements for runtime and depending on your platform, it might be worth to try.
+
+__By default, numba is disabled.__ Potrace with numba enabled can be installed with:
+
+* `pip install potracer[numba]`
+
+to make use of the speedup.
+
 # Requirements
 * numpy: for bitmap structures.
 

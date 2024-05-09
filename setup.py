@@ -5,5 +5,6 @@ setup(
     ],
     extras_require={
         'cli': ["potrace-cli"],
+        'numba': ["numba"],
     }
 )
