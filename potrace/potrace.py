@@ -3,6 +3,14 @@ from typing import Optional, Tuple, Union
 
 import numpy as np
 
+try:
+    from numba import njit
+except ImportError:
+
+    def njit(*args, **kwargs):
+        return lambda f: f
+
+
 POTRACE_TURNPOLICY_BLACK = 0
 POTRACE_TURNPOLICY_WHITE = 1
 POTRACE_TURNPOLICY_LEFT = 2
@@ -641,6 +649,7 @@ def findpath(bm: np.array, x0: int, y0: int, sign: bool, turnpolicy: int) -> _Pa
     return _Path(pt, area, sign)
 
 
+@njit()
 def findnext(bm: np.array) -> Optional[Tuple[Union[int], int]]:
     """
     /* find the next set pixel in a row <= y. Pixels are searched first
@@ -1262,7 +1271,7 @@ def _calc_lon(pp: _Path) -> int:
         dk_y = sign(pt[k].y - pt[k1].y)
         cur_x = pt[k1].x - pt[i].x
         cur_y = pt[k1].y - pt[i].y
-        """find largest integer j such that xprod(constraint[0], cur+j*dk) >= 0 
+        """find largest integer j such that xprod(constraint[0], cur+j*dk) >= 0
         and xprod(constraint[1], cur+j*dk) <= 0. Use bilinearity of xprod. */"""
         a = xprod(constraint0x, constraint0y, cur_x, cur_y)
         b = xprod(constraint0x, constraint0y, dk_x, dk_y)
