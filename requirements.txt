@@ -1,1 +1,5 @@
 numpy
+Pillow  # Si estás usando Pillow para manejar imágenes
+# Otras dependencias pueden incluirse aquí, por ejemplo:
+# lxml  # Si necesitas manejar SVGs de forma más avanzada
+# matplotlib  # Si estás utilizando para visualización
