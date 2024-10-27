@@ -20,18 +20,16 @@ COS179 = math.cos(math.radians(179))
 
 
 class Bitmap:
-    def __init__(self, data, blacklevel=0.5):
-        if hasattr(data, "dtype"):
-            if data.dtype != "bool":
-                data = data > (255 * blacklevel)
+    def __init__(self, data):
+        # Aceptar imágenes en color (RGB o RGBA)
         if hasattr(data, "mode"):
-            if data.mode != "L":
-                data = data.convert("L")
-            data = data.point(lambda e: 0 if (e / 255.0) < blacklevel else 255)
-            image = data.convert("1")
-            data = np.array(image)
-        self.data = data
-        self.invert()
+            if data.mode not in ["RGB", "RGBA"]:
+                raise ValueError("Image must be in RGB or RGBA mode.")
+            data = data.convert("RGB")
+        
+        # Convertir la imagen a un array de NumPy
+        self.data = np.array(data)
+        self.height, self.width, _ = self.data.shape
 
     def invert(self):
         self.data = np.invert(self.data)
@@ -44,6 +42,8 @@ class Bitmap:
         opticurve=True,
         opttolerance=0.2,
     ):
+        # Convertir la imagen en un formato adecuado para el trazado
+        # Aquí puedes ajustar cómo se maneja el trazado según el color
         bm = np.pad(self.data, [(0, 1), (0, 1)], mode="constant")
 
         plist = bm_to_pathlist(bm, turdsize=turdsize, turnpolicy=turnpolicy)
@@ -165,15 +165,14 @@ class _Curve:
 class _Path:
     def __init__(self, pt: list, area: int, sign: bool):
         self.pt = pt  # /* pt[len]: path as extracted from bitmap */
-
         self.area = area
         self.sign = sign
         self.next = None
         self.childlist = []
         self.sibling = []
+        self.color = None  # Agregar atributo para almacenar color
 
         self._lon = []  # /* lon[len]: (i,lon[i]) = longest straight line from i */
-
         self._x0 = 0  # /* origin for sums */
         self._y0 = 0  # /* origin for sums */
         self._sums = []  # / *sums[len + 1]: cache for fast summing * /
@@ -208,6 +207,7 @@ class _Segment:
         self.alpha = 0.0
         self.alpha0 = 0.0
         self.beta = 0.0
+        self.color = None  # Agregar atributo para almacenar color
 
 
 class _Sums:
@@ -536,7 +536,6 @@ def xor_to_ref(bm: np.array, x: int, y: int, xa: int) -> None:
      /* efficiently invert bits [x,infty) and [xa,infty) in line y. Here xa
     must be a multiple of BM_WORDBITS. */
     """
-
     if x < xa:
         bm[y, x:xa] ^= True
     elif x != xa:
@@ -609,6 +608,10 @@ def findpath(bm: np.array, x0: int, y0: int, sign: bool, turnpolicy: int) -> _Pa
             d = bm[dy][dx]
         except IndexError:
             d = 0
+
+        # Implementar comparación de colores
+        if not is_edge(bm[cy][cx], bm[y][x]):  # Verificar si hay un borde de color
+            continue
 
         if c and not d:  # /* ambiguous turn */
             if (
@@ -701,18 +704,9 @@ def pathlist_to_tree(plist: list, bm: np.array) -> None:
        and will be used as scratch space. Return 0 on success or -1 on
        error with errno set. */
     """
-    # path_t *p, *p1
-    # path_t *heap, *heap1
-    # path_t *cur
-    # path_t *head
-    # path_t **plist_hook          #/* for fast appending to linked list */
-    # path_t **hook_in, **hook_out #/* for fast appending to linked list */
-    # bbox_t bbox
-
     bm = bm.copy()
 
     # /* save original "next" pointers */
-
     for p in plist:
         p.sibling = p.next
         p.childlist = None
@@ -746,66 +740,14 @@ def pathlist_to_tree(plist: list, bm: np.array) -> None:
        head->childlist if it's inside head, else append it to
        head->next. */
        """
-        # hook_in= head.childlist
-        # hook_out= head.next
-        # list_forall_unlink(p, cur):
-        #     if p.priv.pt[0].y <= bbox.y0:
-        #         list_insert_beforehook(p, hook_out)
-        #         # /* append the remainder of the list to hook_out */
-        #         hook_out = cur
-        #         break
-        #     if (BM_GET(bm, p.priv.pt[0].x, p.priv.pt[0].y-1)):
-        #         list_insert_beforehook(p, hook_in)
-        #     else:
-        #         list_insert_beforehook(p, hook_out)
+        for p in cur:
+            if p.pt[0].y <= y0:  # Verificar si está por debajo
+                head.childlist.append(p)  # Añadir como hijo
+            else:
+                head.next = p  # Añadir como siguiente
 
     # /* clear bm */
     # clear_bm_with_bbox(bm, &bbox)
-    #
-    # #/* now schedule head->childlist and head->next for further processing */
-    # if head.next:
-    #     head.next.childlist = heap
-    #     heap = head.next
-    # if head.childlist:
-    #     head.childlist.childlist = heap
-    #     heap = head->childlist
-    #
-    # #/* copy sibling structure from "next" to "sibling" component */
-    # p = plist
-    # while p:
-    #     p1 = p.sibling
-    #     p.sibling = p.next
-    #     p = p1
-    #
-    # """
-    # /* reconstruct a new linked list ("next") structure from tree
-    # ("childlist", "sibling") structure. This code is slightly messy,
-    # because we use a heap to make it tail recursive: the heap
-    # contains a list of childlists which still need to be
-    # processed. */"""
-    # heap = plist
-    # if heap:
-    #     heap.next = None  #/* heap is a linked list of childlists */
-    # plist = None
-    # plist_hook = plist
-    # while heap:
-    #     heap1 = heap.next
-    #     for (p=heap; p; p=p->sibling):
-    #         #/* p is a positive path */
-    #         #/* append to linked list */
-    #         list_insert_beforehook(p, plist_hook)
-    #
-    #         #/* go through its children */
-    #     for (p1=p->childlist; p1; p1=p1->sibling):
-    #         #/* append to linked list */
-
-
-#         list_insert_beforehook(p1, plist_hook);
-#         #/* append its childlist to heap, if non-empty */
-#     if (p1.childlist):
-#         list_append(path_t, heap1, p1->childlist)
-#     heap = heap1
-
 
 def bm_to_pathlist(
     bm: np.array, turdsize: int = 2, turnpolicy: int = POTRACE_TURNPOLICY_MINORITY
@@ -821,7 +763,6 @@ def bm_to_pathlist(
 
     """/* be sure the byte padding on the right is set to 0, as the fast
     pixel search below relies on it */"""
-    # /* iterate through components */
     while True:
         n = findnext(bm)
         if n is None:
@@ -841,9 +782,8 @@ def bm_to_pathlist(
         if path.area > turdsize:
             plist.append(path)
 
-    # pathlist_to_tree(plist, original)
+    pathlist_to_tree(plist, original)  # Llamar a la función para construir el árbol
     return plist
-
 
 # END DECOMPOSE SECTION.
 
@@ -1049,11 +989,6 @@ def bezier(t: float, p0: _Point, p1: _Point, p2: _Point, p3: _Point) -> _Point:
     """calculate point of a bezier curve"""
     s = 1 - t
 
-    """
-    Note: a good optimizing compiler (such as gcc-3) reduces the
-    following to 16 multiplications, using common subexpression
-    elimination.
-    """
     return _Point(
         s * s * s * p0.x
         + 3 * (s * s * t) * p1.x
@@ -1100,7 +1035,6 @@ def tangent(
         return r2
     else:
         return -1.0
-
 
 """
 /* ---------------------------------------------------------------------- */
@@ -1163,6 +1097,7 @@ def _calc_sums(path: _Path) -> int:
         path._sums[i + 1].x2 = path._sums[i].x2 + float(x * x)
         path._sums[i + 1].xy = path._sums[i].xy + float(x * y)
         path._sums[i + 1].y2 = path._sums[i].y2 + float(y * y)
+
     return 0
 
 
@@ -1342,6 +1277,12 @@ def penalty3(pp: _Path, i: int, j: int) -> float:
     c = (y2 - 2 * y * py) / k + py * py
 
     s = ex * ex * a + 2 * ex * ey * b + ey * ey * c
+
+    # Aquí puedes agregar lógica para penalizar o modificar s basado en color.
+    # Por ejemplo:
+    # if some_color_condition:
+    #     s *= color_penalty_factor
+
     return math.sqrt(s)
 
 
@@ -1630,6 +1571,12 @@ def _smooth(curve: _Curve, alphamax: float) -> None:
             curve[j].c[0] = p2
             curve[j].c[1] = p3
             curve[j].c[2] = p4
+
+        # Aquí puedes agregar lógica para ajustar la suavidad basada en color.
+        # Por ejemplo:
+        # if some_color_condition:
+        #     adjust_alpha_based_on_color(alpha)
+
         curve[j].alpha = alpha  # /* store the "cropped" value of alpha */
         curve[j].beta = 0.5
     curve.alphacurve = True
@@ -1728,7 +1675,6 @@ def opti_penalty(
     A1 = dpara(p0, p1, p2)
     A2 = dpara(p0, p1, p3)
     A3 = dpara(p0, p2, p3)
-    # /* A4 = dpara(p1, p2, p3); */
     A4 = A1 + A3 - A2
 
     if A2 == A1:  # this should never happen
@@ -1778,6 +1724,12 @@ def opti_penalty(
         ):
             return 1
         res.pen += sq(d1)
+
+        # Aquí puedes agregar lógica para ajustar la penalización basada en color.
+        # Por ejemplo:
+        # if some_color_condition:
+        #     res.pen += color_penalty_factor
+
         k = k1
 
     # /* check corners */
@@ -1944,6 +1896,11 @@ def process_path(
             p._fcurve = p._ocurve
         else:
             p._fcurve = p._curve
+
+        # Aquí puedes agregar lógica para ajustar el procesamiento basado en color.
+        # Por ejemplo, puedes verificar si el color de la trayectoria es apropiado
+        # para una cierta operación y ajustarlo en consecuencia.
+
     return 0
 
 
