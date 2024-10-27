@@ -16,3 +16,7 @@ from .potrace import (
     POTRACE_TURNPOLICY_LEFT,
     POTRACE_TURNPOLICY_RANDOM,
 )
+
+# Se pueden agregar exportaciones de nuevas clases o constantes relacionadas con colores aquí.
+# Por ejemplo, si has añadido una clase Color o constantes relacionadas con el manejo de colores.
+# from .color import Color  # Ejemplo de cómo incluir una clase de color
