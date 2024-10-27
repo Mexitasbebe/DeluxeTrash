@@ -1,56 +1,69 @@
-# Python Potrace
-Pure Python Port of Potrace. This is a python port of Peter Selinger's Potrace (based on 1.16 code).
+# 🌈 Python Potrace - The Ultimate Color Tracker! 🌈
+
+**Welcome to the world of color tracing!** This is a **pure Python port** of Potrace, originally crafted by Peter Selinger. Are you ready to unleash your creativity with colors? Let’s get started!
 
 <img width="200" height="200" src="https://gist.githubusercontent.com/tatarize/42884e5e99cda88aa5ddc2b0ab280973/raw/488cafa1811bd2227458390804910fbc4a90b9ea/head.svg"/>
 
 ![head-orig3](https://user-images.githubusercontent.com/3302478/115929160-2757f180-a43c-11eb-88dc-1320706c9a3f.png)
-> Note: This image has been scaled up by a factor of 3.
+
+> **Note:** This image has been scaled up by a factor of 3.
 
 ![head-scaled](https://user-images.githubusercontent.com/3302478/154810339-6a444bfa-3f2e-4ad0-91cf-40570838a918.png)
 
-This port is needed because many python hooks to the original code such as `pypotrace` have installation issues and compilation problems with some OSes. This potrace is written in pure python and will be compatible with basically anything.
+---
 
-# Installing
+## 🚀 Why Potrace?
 
-To install or use as a requirement:
-* `pip install potracer`
+This port is essential because many Python integrations of the original code, like `pypotrace`, encounter installation issues and compilation problems across different operating systems. Our version, written entirely in Python, promises compatibility with nearly everything!
 
-### Potrace-CLI
-If you wish to use the Command Line Interface that is stored in a sister project `potrace-cli` (https://github.com/tatarize/potrace-cli). This can be installed with:
-* `pip install potracer[cli]`
+## 🛠️ Installation
+
+To install or to use as a requirement:
+
+```bash
+pip install potracer
+```
+
+### 🎨 Potrace-CLI
+If you want to utilize the Command Line Interface available in the sister project `potrace-cli`, simply run:
+
+```bash
+pip install potracer[cli]
+```
 
 or:
 
-* `pip install potrace-cli`
+```bash
+pip install potrace-cli
+```
 
-The cli project contains valid console script entrypoints for potrace. If you install the command-line package it will add `potracer` to your console scripts. Note the `-r` suffix so that it does not interfere with potrace that may be otherwise installed.
+The CLI project includes valid console script entrypoints for Potrace. Installing the command-line package will add `potracer` to your console scripts. Remember the `-r` suffix to avoid conflicts with existing installations.
 
-# Requirements
-* numpy: for bitmap structures.
+## 📦 Requirements
+- **NumPy**: Required for managing bitmap structures.
 
-# Speed
-Being written in python this code may be about 500x slower than the pure-c potrace. It is however fast enough for general use.
+## ⚡ Speed
+While written in Python, this code may perform around **500x slower** than the pure C version of Potrace. However, it remains efficient for general use and creative projects!
 
-# How To Use
+## 📜 How To Use
 
-This is a barebones script that uses `potracer` to convert a given file to an svg. The file loading is performed with `Pillow`. The file saving is done iterating over the curves inside the plist to produce the SVG with the corners and curves of the potrace structures.
+This is a simple script that converts a given file to an SVG using `potracer`. It utilizes **Pillow** for file loading and iterates over curves inside the plist to generate the SVG with corners and curves.
 
-Note: The `bm.trace()` is the primary function call needed for potrace.
+### Example Usage
+
 ```python
 import sys
 from PIL import Image
-from potrace import Bitmap, POTRACE_TURNPOLICY_MINORITY  # `potracer` library
-
+from potracer import Bitmap, POTRACE_TURNPOLICY_MINORITY  # `potracer` library
 
 def file_to_svg(filename: str):
     try:
-
         image = Image.open(filename)
     except IOError:
-        print("Image (%s) could not be loaded." % filename)
+        print(f"🚫 Image ({filename}) could not be loaded.")
         return
-    bm = Bitmap(image, blacklevel=0.5)
-    # bm.invert()
+
+    bm = Bitmap(image)
     plist = bm.trace(
         turdsize=2,
         turnpolicy=POTRACE_TURNPOLICY_MINORITY,
@@ -58,9 +71,9 @@ def file_to_svg(filename: str):
         opticurve=False,
         opttolerance=0.2,
     )
+
     with open(f"{filename}.svg", "w") as fp:
-        fp.write(
-            f'''<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="{image.width}" height="{image.height}" viewBox="0 0 {image.width} {image.height}">''')
+        fp.write(f'''<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="{image.width}" height="{image.height}" viewBox="0 0 {image.width} {image.height}">''')
         parts = []
         for curve in plist:
             fs = curve.start_point
@@ -79,20 +92,22 @@ def file_to_svg(filename: str):
         fp.write(f'<path stroke="none" fill="black" fill-rule="evenodd" d="{"".join(parts)}"/>')
         fp.write("</svg>")
 
-
 if __name__ == '__main__':
     file_to_svg(sys.argv[1])
 ```
 
-# Parallel Projects
-This project intentionally duplicates a considerable amount of the API of `pypotrace` such that this library can be used as a drop-in replacement.
+## 🌐 Parallel Projects
+This project intentionally mirrors a considerable amount of the API of `pypotrace`, allowing it to serve as a drop-in replacement.
 
-To permit performing potrace commands from the commandline, this library offers CLI potrace as an optional package.
+For executing Potrace commands from the command line, this library offers CLI Potrace as an optional package.
 
+## 📜 License
+This program is free software; you can redistribute it and/or modify it under the terms of the **GNU General Public License** as published by the **Free Software Foundation**; either version 2, or (at your option) any later version.
 
-# License
-This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2, or (at your option) any later version.
+Furthermore, this is permitted to be relicensed under any terms that Peter Selinger's original Potrace is licensed under. If he publishes the software under a more permissive license, this port should be considered licensed as such as well.
 
-Furthermore, this is permitted to be relicensed under any terms the Peter Selinger's original Potrace is licensed under. If he broadly publishes the software under a more permissive license this port should be considered licensed as such as well. Further, if you purchase a proprietary license for inclusion within commercial software under his Dual Licensing program your use of this software shall be under whatever terms he permits for that. Any contributions to this port must be made under equally permissive terms.
+"Potrace" is a trademark of Peter Selinger. **Permission granted by Peter Selinger.**
 
-"Potrace" is a trademark of Peter Selinger. Permission granted by Peter Selinger.
+---
+
+🌟 **Let's create vibrant and colorful SVGs together with Potrace!** 🌟
